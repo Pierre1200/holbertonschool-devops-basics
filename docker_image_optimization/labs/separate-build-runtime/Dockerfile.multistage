@@ -1,0 +1,21 @@
+# syntax=docker/dockerfile:1
+FROM golang:1.25-alpine AS builder
+
+WORKDIR /app
+
+COPY go.mod ./
+RUN go mod download
+
+COPY . .
+
+RUN go test ./...
+
+RUN CGO_ENABLED=0 go build -o /greeter ./cmd/greeter
+
+FROM scratch
+
+COPY --from=builder /greeter /greeter
+
+USER 65532:65532
+
+ENTRYPOINT ["/greeter"]
