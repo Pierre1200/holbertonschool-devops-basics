@@ -1,11 +1,24 @@
 # syntax=docker/dockerfile:1
-# Replace this baseline-style Dockerfile with your optimized implementation.
-# Keep the file name `Dockerfile`.
-FROM golang:1.25-alpine
-WORKDIR /workspace
-COPY . .
+FROM golang:1.25-alpine AS builder
+
+WORKDIR /app
+
+COPY go.mod ./
 RUN go mod download
+
+COPY cmd/ ./cmd/
+COPY internal/ ./internal/
+
 RUN go test ./...
-RUN CGO_ENABLED=0 go build -buildvcs=false -o /usr/local/bin/inventory-api ./cmd/api
+
+RUN CGO_ENABLED=0 go build -o /out/inventory-api ./cmd/api
+
+FROM scratch
+
+COPY --from=builder /out/inventory-api /inventory-api
+
+USER 65532:65532
+
 EXPOSE 8080
-CMD ["/usr/local/bin/inventory-api"]
+
+ENTRYPOINT ["/inventory-api"]
